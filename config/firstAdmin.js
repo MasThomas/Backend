@@ -13,7 +13,7 @@ function firstAdmin(req, res) {
               email: "admin@admin.fr",
               avatar: `${process.env.SERVERADDRESS}imagesdefault/defaultuseravatar.png`,
               password: hash,
-              isAdmin: true,
+              role: true,
             })
               .then((admin) => {
                 console.log({ message: `Le compte ${admin.username} a été créé!`,});
@@ -33,4 +33,5 @@ function firstAdmin(req, res) {
       console.log({ error });
     });
 }
+
 module.exports = firstAdmin();
