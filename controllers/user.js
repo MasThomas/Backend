@@ -1,6 +1,6 @@
 const db = require("../models"); 
 const Sequelize = require("sequelize")
-const { Op } = Sequelize.Op;
+const { Op } = Sequelize;
 const jwt = require("jsonwebtoken");
 const auth = require("../middleware/auth")
 const bcrypt = require("bcrypt");
@@ -14,14 +14,15 @@ exports.signup = async (req, res) => {
       const user = await db.User.findOne({
         where: { [Op.or]: [{username: req.body.username}, {email: req.body.email}] },
       });
+
       if (user !== null) {
           return res.status(401).json({ error: "Ce nom d'utilisateur ou cet email est déjà utilisé" });
       } else { 
-            const hashed = await bcrypt.hash(req.body.password, 10)
+            const hash = await bcrypt.hash(req.body.password, 10)
             db.User.create({
-            username: xss(req.body.username),
-            email: xss(req.body.email),
-            password: hashed,
+            username: req.body.username,
+            email: req.body.email,
+            password: hash,
             role: false,
             avatar: `${req.protocol}://${req.get("host")}/imagesdefault/defaultuseravatar.png`
           });
@@ -36,7 +37,7 @@ exports.signup = async (req, res) => {
 };
 
 // LOGIN pour se connecter 
-exports.login = async (req, res, next) => {
+exports.login = async (req, res) => {
   try {
     const user = await db.User.findOne({
       where: {username: req.body.username},
@@ -54,7 +55,7 @@ exports.login = async (req, res, next) => {
           email: user.email,
           role: user.role,
           userId: user.id,
-          token: jwt.sign({userId: user.id}, process.env.TOKEN, {expiresIn: '24h'})
+          token: jwt.sign({userId: user.id}, process.env.SECRET_JWT, {expiresIn: '24h'})
       })
       }
     }
@@ -64,7 +65,7 @@ exports.login = async (req, res, next) => {
 };
 
 // Retrouver UN utilisateur 
-exports.getOneUser = async (req, res, next) => {
+exports.getOneUser = async (req, res) => {
   try {
     const user = await db.User.findOne({ attributes: ["id", "username", "email", "avatar"],
     where: { id: req.params.id } });
@@ -75,7 +76,7 @@ exports.getOneUser = async (req, res, next) => {
 };
 
 //Retrouver tous les utilisateurs 
-exports.getAllUsers = async (req, res, next) => {
+exports.getAllUsers = async (req, res) => {
   try {
     const users = await db.User.findAll({ attributes: ["id", "username", "email", "avatar"],
     where: { role: { [Op.ne]: 1, } }, });
@@ -86,7 +87,7 @@ exports.getAllUsers = async (req, res, next) => {
 };
 
 // Retrouver son compte afin de pouvoir le modifier si besoin 
-exports.modifyAccount = async (req, res, next) => {
+exports.modifyAccount = async (req, res) => {
   try {
     const userId = auth.getUserID(req);
     const user = await db.User.findOne({ where: { id: req.params.id } });
