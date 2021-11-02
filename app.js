@@ -6,7 +6,7 @@ const path = require("path");
 
 const db = require("./models/index")
 db.sequelize.sync().then(function () {
-  require("./conf/firstadmin");
+  require("./config/firstadmin");
 })
 
 app.use(helmet());
