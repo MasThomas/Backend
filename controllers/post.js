@@ -8,32 +8,32 @@ exports.createPost = async (req, res, next) => {
         let imageUrl = "";
         const userId = auth.getUserID(req);
         const user = await db.User.findOne({ where: { id: userId } });
+        console.log("user", userId)
         if(user !== null) { 
             if (req.file) {
                 imageUrl = `${req.protocol}://${req.get('host')}/images/${req.file.filename}`;
             } else {
                 imageUrl = null;
             }
-            if(!req.body.title || !req.body.content){
+            if(!req.body.content){
                 fs.unlink(`images/${req.file.filename}`, () => {
-                  res.status(403).json({ message: "Merci de renseigner le titre et le corps du message" });
-                }); //Si une image est ajouté et que la requête est en erreur, l'image sera quand même dans le folder, donc on évite cela
-                res.status(403).json({ message: "Merci de renseigner le titre et le corps du message" });
-            } else {
-                const myPost = await db.Post.create({
-                    title: xss(req.body.title),
-                    content: xss(req.body.content),
-                    imageUrl: imageUrl,
-                    UserId: user.id,
+                  res.status(403).json({ message: "Veuillez renseigner le titre et le contenu du message" });
                 }); 
-                res.status(200).json({ post: myPost, message: "Post ajouté" });
+                res.status(403).json({ message: "Veuillez renseigner le titre et le contenu du message" });
+            } else {
+                const newPost = await db.Post.create({
+                    content: req.body.content,
+                    imageUrl: imageUrl,
+                    UserId: userId,
+                }); 
+                res.status(200).json({ post: newPost, message: "Post créé" });
             }
         }
         else {
-            return res.status(403).json({ error: "Le post n'a pas pu être ajouté" });
+            return res.status(403).json({ error: "Le post n'a pas pu être créé" });
         }
     } catch (error) {
-        return res.status(500).json({ error: "Erreur Serveur" });
+        return res.status(500).json({ error: "Erreur Serveur lors de la création du post" });
     }
 };
 
@@ -41,13 +41,9 @@ exports.createPost = async (req, res, next) => {
 exports.getOnePost = async (req, res, next) => {
     try {
         const post = await db.Post.findOne({ 
-            attributes: ["id", "title", "content", "imageUrl", "modifiedBy"], 
+            attributes: ["id", "content", "imageUrl", "modifiedBy"], 
             include: [
                 {model: db.User, attributes: ["id", "username", "email", "avatar"]},
-                /*{model: db.Like, 
-                    attributes: ["UserId"],
-                    include: [ {model: db.User, attributes: ["username"]}  ] 
-                },*/
                 {model: db.Comment, 
                     limit: 100, order: [["id", "DESC"]], 
                     attributes: ["id", "comment", "modifiedBy"],
@@ -58,23 +54,18 @@ exports.getOnePost = async (req, res, next) => {
         });
         res.status(200).json(post);
     } catch (error) {
-        return res.status(500).json({ error: "Erreur Serveur" });
+        return res.status(500).json({ error: "Erreur Serveur lors de l'affichage d'un post" });
     }
 };
 
-// AFFICHER TOUS les POSTS
+// AFFICHER TOUS LES POSTS
 exports.getAllPosts = async (req, res, next) => {
   try {
     const posts = await db.Post.findAll({ 
         limit: 50, order: [["id", "DESC"]], 
-        attributes: ["id", "title", "content", "imageUrl", "modifiedBy"],
+        attributes: ["id", "content", "imageUrl", "modifiedBy"],
         include: [
             {model: db.User, attributes: ["id", "username", "email", "avatar"]},
-            /*{model: db.Like, 
-                attributes: ["UserId"],
-                order: [["id", "DESC"]],
-                include: [ {model: db.User, attributes: ["username"]}  ] 
-            },*/
             {model: db.Comment, 
                 attributes: ["id", "comment", "modifiedBy"],
                 include: [ {model: db.User, attributes: ["id", "username", "email", "avatar"]}  ] 
@@ -83,7 +74,7 @@ exports.getAllPosts = async (req, res, next) => {
     });
     res.status(200).json(posts);
   } catch (error) {
-    return res.status(500).json({ error: "Erreur Serveur" });
+    return res.status(500).json({ error: "Erreur Serveur lors de l'affiche de tous les posts" });
   }
 };
 
@@ -108,7 +99,7 @@ exports.deletePost = async (req, res, next) => {
             res.status(400).json({ message: "Vous n'êtes pas autotisé à supprimer ce Post" });
           }
     } catch (error) {
-        return res.status(500).json({ error: "Erreur Serveur" });
+        return res.status(500).json({ error: "Erreur Serveur lors de la suppression d'un post" });
     }
 };
 
@@ -131,16 +122,14 @@ exports.modifyPost = async (req, res, next) => {
                     });
                 }
             }
-            if (req.body.title) {
-                thisPost.title = xss(req.body.title);
-            }
+            
             if (req.body.content) {
-                thisPost.content = xss(req.body.content);
+                thisPost.content = req.body.content;
             }
             thisPost.modifiedBy = hasModified.username;
             thisPost.imageUrl = newImageUrl;
             const newPost = await thisPost.save({
-                fields: ["title", "content", "imageUrl", "modifiedBy"],
+                fields: ["content", "imageUrl", "modifiedBy"],
             });
             res.status(200).json({ newPost: newPost, message: "Le Post a été modifié" });
           } 
@@ -148,9 +137,33 @@ exports.modifyPost = async (req, res, next) => {
             res.status(400).json({ message: "Vous n'êtes pas autorisé à modifier ce post" });
           }
     } catch (error) {
-        return res.status(500).json({ error: "Erreur Serveur" });
+        return res.status(500).json({ error: "Erreur Serveur lors de la modificaiton d'un post" });
     }
 };
+
+// AFFICHER tous les POSTS d'un utilisateur
+
+exports.getAllPostsFromUser = async (req, res, next) => {
+    try {
+      const user = await db.user.findOne({username: req.params.username})
+      const posts = await db.Post.findAll({
+        where : {userId : req.user},
+        limit: 50, order: [["id", "DESC"]], 
+        attributes : ["id", "content", "imageUrl", "modifiedBy"],
+        include: [
+            {model: db.User, attributes: ["id", "username", "email", "avatar"]},
+            {model: db.Comment, 
+                attributes: ["id", "comment", "modifiedBy"],
+                include: [ {model: db.User, attributes: ["id", "username", "email", "avatar"]}  ] 
+            },
+        ],
+      });
+      res.status(200).json(posts);
+    } catch (error) {
+      return res.status(500).json({ error: "Erreur Serveur lors de l'affichage de tous les posts d'un utilisateur" });
+    }
+  };
+
 
 // CREATION d'un COMMENTAIRE
 exports.createComment = async (req, res, next) => {    
@@ -162,7 +175,7 @@ exports.createComment = async (req, res, next) => {
                 return res.status(403).json({ error: "Merci de renseigner le corps du message" });
             } else {
                 const myComment = await db.Comment.create({
-                    comment: xss(req.body.comment),
+                    comment: req.body.comment,
                     UserId: user.id,
                     PostId: req.params.id,
                 }); 
@@ -173,7 +186,7 @@ exports.createComment = async (req, res, next) => {
             return res.status(403).json({ error: "Le commentaire n'a pas pu être ajouté" });
         }
     } catch (error) {
-        return res.status(500).json({ error: "Erreur Serveur" });
+        return res.status(500).json({ error: "Erreur Serveur lors de la création d'un commentaire" });
     }
 };
 
@@ -189,7 +202,7 @@ exports.getOneComment = async (req, res, next) => {
         });
         res.status(200).json(comment);
     } catch (error) {
-        return res.status(500).json({ error: "Erreur Serveur" });
+        return res.status(500).json({ error: "Erreur Serveur lors de l'affichage d'un commentaire" });
     }
 };
 
@@ -207,7 +220,7 @@ exports.deleteComment = async (req, res, next) => {
             res.status(400).json({ message: "Vous n'êtes pas autotisé à supprimer ce commentaire" });
           }
     } catch (error) {
-        return res.status(500).json({ error: "Erreur Serveur" });
+        return res.status(500).json({ error: "Erreur Serveur lors de la suppression d'un commentaire" });
     }
 };
 
@@ -220,7 +233,7 @@ exports.modifyComment = async (req, res, next) => {
         const thisComment = await db.Comment.findOne({ where: { id: req.params.id } });
         if (userId === thisComment.UserId || isAdmin.role === true) {
             if (req.body.comment) {
-                thisComment.comment = xss(req.body.comment);
+                thisComment.comment = req.body.comment;
             }
             thisComment.modifiedBy = hasModified.username;
             const newComment = await thisComment.save({
@@ -232,30 +245,6 @@ exports.modifyComment = async (req, res, next) => {
             res.status(400).json({ message: "Vous n'êtes pas autorisé à modifier ce commentaire" });
           }
     } catch (error) {
-        return res.status(500).json({ error: "Erreur Serveur" });
+        return res.status(500).json({ error: "Erreur Serveur lors de la modification d'un commentaire" });
     }
 };
-
-// AIMER un POST
-/* exports.addLike = async (req, res, next) => {
-    try {
-        const userId = auth.getUserID(req);
-        const postId = req.params.id;
-        const userLiked = await db.Like.findOne({ where: { UserId: userId, PostId: postId }, });
-        if (userLiked) {
-            await db.Like.destroy(
-                { where: { UserId: userId, PostId: postId } },
-                { truncate: true, restartIdentity: true }                
-            );
-            res.status(200).json({ message: "Vous n'aimez plus ce post :(" });
-        } else {
-            await db.Like.create({
-                UserId: userId,
-                PostId: postId,
-            });
-            res.status(200).json({ message: "Vous aimez ce post !" });
-        }
-    } catch (error) {
-        return res.status(500).json({ error: "Erreur Serveur" });
-    }
-}; */

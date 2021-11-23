@@ -2,15 +2,15 @@ const db = require("../models");
 const bcrypt = require("bcrypt");
 require('dotenv').config();
 
-function firstAdmin(req, res) {
-  db.User.findOne({ where: { email: "admin@admin.fr" } || { pseudo: "admin" } })
+function createFirstUserAdmin(req, res) {
+  db.User.findOne({ where: { email: process.env.ADMINEMAIL } || { pseudo: process.env.ADMINUSERNAME } })
     .then((user) => {
       if (!user) {
         bcrypt.hash(process.env.ADMINPASSWORD, 10)
           .then((hash) => {
             const admin = db.User.create({
-              username: "admin",
-              email: "admin@admin.fr",
+              username: process.env.ADMINUSERNAME,
+              email: process.env.ADMINEMAIL,
               avatar: `${process.env.SERVERADDRESS}imagesdefault/defaultuseravatar.png`,
               password: hash,
               role: true,
@@ -26,7 +26,7 @@ function firstAdmin(req, res) {
             res.status(500).send({ error });
           });
       } else {
-        console.log({ message: "le compte existe déjà" });
+        console.log({ message: "Le compte administrateur a déjà été créé !" });
       }
     })
     .catch((error) => {
@@ -34,4 +34,4 @@ function firstAdmin(req, res) {
     });
 }
 
-module.exports = firstAdmin();
+module.exports = createFirstUserAdmin();

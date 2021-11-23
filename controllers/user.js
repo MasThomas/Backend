@@ -7,7 +7,6 @@ const bcrypt = require("bcrypt");
 require("dotenv").config();
 const fs = require("fs");
 
-// Enregistrement d'un profil
 exports.signup = async (req, res) => {
   if (req.body.username && req.body.email && req.body.password) {
     try {
@@ -36,11 +35,10 @@ exports.signup = async (req, res) => {
   }
 };
 
-// LOGIN pour se connecter 
 exports.login = async (req, res) => {
   try {
     const user = await db.User.findOne({
-      where: {username: req.body.username},
+      where: {email: req.body.email},
     });
     if (user === null) {
       return res.status(401).json({ error: "Connexion impossible, merci de vérifier votre login" });
@@ -50,7 +48,6 @@ exports.login = async (req, res) => {
         return res.status(401).json({ error: "Le mot de passe est incorrect !" });
       } else {
         res.status(200).json({
-          message: "Vous êtes connecté",
           username: user.username,
           email: user.email,
           role: user.role,
@@ -64,18 +61,22 @@ exports.login = async (req, res) => {
   }
 };
 
-// Retrouver UN utilisateur 
 exports.getOneUser = async (req, res) => {
+  const userId = req.query.userId;
+  const username = req.query.username;
+
   try {
-    const user = await db.User.findOne({ attributes: ["id", "username", "email", "avatar"],
-    where: { id: req.params.id } });
+    const user = userId 
+    ? await db.User.findOne({ attributes: ["id", "username", "email", "avatar"],
+    where: { id: userId } })
+    : await db.User.findOne({attributes: ["id", "username", "email", "avatar"],
+    where: { username: username } });
     res.status(200).json({userInfos : user});
   } catch (error) {
     return res.status(500).json({ error: "Erreur Serveur" });
   }
 };
 
-//Retrouver tous les utilisateurs 
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await db.User.findAll({ attributes: ["id", "username", "email", "avatar"],
@@ -86,7 +87,6 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// Retrouver son compte afin de pouvoir le modifier si besoin 
 exports.modifyAccount = async (req, res) => {
   try {
     const userId = auth.getUserID(req);
@@ -123,7 +123,6 @@ exports.modifyAccount = async (req, res) => {
   }
 };
 
-// Supprimer son compte
 exports.deleteAccount = async (req, res) => {
   try {
       const userId = auth.getUserID(req);
