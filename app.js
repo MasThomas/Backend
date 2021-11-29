@@ -5,7 +5,7 @@ const app = express();
 const path = require("path");
 
 const db = require("./models/index")
-db.sequelize.sync().then(function () {
+db.sequelize.sync({alter:true/*, force:true*/}).then(function () {
   require("./config/createFirstUserAdmin");
 })
 
