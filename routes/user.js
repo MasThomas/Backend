@@ -12,7 +12,9 @@ const multer = require('../middleware/multer-config')
 router.post("/signup", pwValidator, mailRegex, userCtrl.signup);
 router.post("/login", userCtrl.login);
 router.get("/profils", auth.signin, userCtrl.getAllUsers);
-router.get("/profils/:username", auth.signin, userCtrl.getOneUser);
+router.get("/profils/:username", auth.signin, userCtrl.getOneUserByUsername);
+router.get("/profils/id/:id", auth.signin, userCtrl.getOneUserById);
+
 
 router.put("/profils/profilepicture/:id", auth.signin, hasRightsToModify , multer , userCtrl.modifyAccountProfilePicture);
 router.put("/profils/username/:id", auth.signin, hasRightsToModify , userCtrl.modifyAccountUsername);
