@@ -26,7 +26,7 @@ exports.signup = async (req, res) => {
             email: req.body.email,
             password: hash,
             role: false,
-            avatar: `${req.protocol}://${req.get("host")}/imagesdefault/defaultuseravatar.png`
+            imageUrl: `${req.protocol}://${req.get("host")}/imagesdefault/defaultuseravatar.png`
           });
           res.status(201).json({ message: "Votre compte est créé. Vous pouvez vous connecter avec votre identifiant et mot de passe !" });
       }
@@ -64,7 +64,7 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.getOneUser = async (req, res) => {
+exports.getOneUserByUsername = async (req, res) => {
   const username = req.params.username;
 
   try {
@@ -75,9 +75,20 @@ exports.getOneUser = async (req, res) => {
   }
 };
 
+exports.getOneUserById = async (req, res) => {
+  const id = req.params.id;
+
+  try {
+    await db.User.findOne({where: { id: id }})
+    .then((user) => res.status(200).json(user))
+  } catch (error) {
+    return res.status(500).json({ error: "Erreur serveur lors de la demande " });
+  }
+};
+
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await db.User.findAll({ attributes: ["id", "username", "email", "avatar", "role"]});
+    const users = await db.User.findAll({ attributes: ["id", "username", "email", "imageUrl", "role"]});
     res.status(200).json(users);
   } catch (error) {
     return res.status(500).json({ error: "Erreur Serveur" });
@@ -89,21 +100,21 @@ exports.modifyAccountProfilePicture = async (req, res) => {
   const userToUpdate = await db.User.findOne({ where: { username: req.params.username } }); // On récupère l'utilisateur à modifier
   try {
     
-    if (req.file && userToUpdate.avatar) {
-      updatedAvatar = `${req.protocol}://${req.get("host")}/images/${req.file.filename}`;
-      const filename = userToUpdate.avatar.split("/images")[1];
+    if (req.file && userToUpdate.imageUrl) {
+      updatedimageUrl = `${req.protocol}://${req.get("host")}/images/${req.file.filename}`;
+      const filename = userToUpdate.imageUrl.split("/images")[1];
       fs.unlink(`images/${filename}`, (err) => {
         err ? console.log(err) : console.log(`Image Supprimée: images/${filename}`);});
     
       } else if (req.file) {
-        updatedAvatar = `${req.protocol}://${req.get("host")}/images/${req.file.filename}`;
+        updatedimageUrl = `${req.protocol}://${req.get("host")}/images/${req.file.filename}`;
       }
 
-    if (updatedAvatar) {
-    userToUpdate.avatar = updatedAvatar;
+    if (updatedimageUrl) {
+    userToUpdate.imageUrl = updatedimageUrl;
     }
-    const newUser = await userToUpdate.save({ fields: ["avatar"] }); 
-    return res.status(200).json("Votre avatar a bien été mis à jour!");
+    const newUser = await userToUpdate.save({ fields: ["imageUrl"] }); 
+    return res.status(200).json("Votre imageUrl a bien été mis à jour!");
   } catch {
       return res.status(500).json({ error: "Erreur Serveur lors de la modification de la photo de profil" });
   }
@@ -152,8 +163,8 @@ exports.deleteAccount = async (req, res) => {
       const isAdmin = await db.User.findOne({ where: { id: userId } }); 
       const user = await db.User.findOne({ where: { id: req.params.id } });
       if (req.params.id === userId || isAdmin.role === true){
-      if (user.avatar !== null) {
-        const filename = user.avatar.split("/images")[1];
+      if (user.imageUrl !== null) {
+        const filename = user.imageUrl.split("/images")[1];
         fs.unlink(`images/${filename}`, () => {
           db.User.destroy({ where: { id: req.params.id } });
           res.status(200).json({ message: "Le compte a été supprimé" });
