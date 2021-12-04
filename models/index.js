@@ -13,6 +13,10 @@ let sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USERNAME, proc
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
   dialect: process.env.DB_DIALECT,
+  define: {
+    timestamps: true,
+    underscored: true,
+}
 });
 
 
