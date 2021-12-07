@@ -11,9 +11,10 @@ function createFirstUserAdmin(req, res) {
             const admin = db.User.create({
               username: process.env.ADMINUSERNAME,
               email: process.env.ADMINEMAIL,
-              imageUrl: `${process.env.SERVER_ADRESSE}imagesdefault/defaultuseravatar.png`,
+              imageUrl: `${process.env.SERVER_ADRESSE}/imagesdefault/default.png`,
               password: hash,
-              role: true,
+              companyRole: process.env.COMPANY_ROLE ? process.env.COMPANY_ROLE : "Administrateur du réseau social",
+              isAdmin: true,
             })
               .then((admin) => {
                 console.log({ message: `Le compte ${admin.username} a été créé!`,});
