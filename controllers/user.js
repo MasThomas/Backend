@@ -11,7 +11,7 @@ const pwValidator = require('../middleware/pwValidator')
 
 
 exports.signup = async (req, res) => {
-  if (req.body.username && req.body.email && req.body.password) {
+  if (req.body.username && req.body.email && req.body.password && req.body.companyRole) {
     try {
       const user = await db.User.findOne({
         where: { [Op.or]: [{username: req.body.username}, {email: req.body.email}] },
@@ -24,9 +24,10 @@ exports.signup = async (req, res) => {
             db.User.create({
             username: req.body.username,
             email: req.body.email,
+            companyRole: req.body.companyRole,
             password: hash,
-            role: false,
-            imageUrl: `${req.protocol}://${req.get("host")}/imagesdefault/defaultuseravatar.png`
+            isAdmin: false,
+            imageUrl: `${req.protocol}://${req.get("host")}/imagesdefault/default.png`
           });
           res.status(201).json({ message: "Votre compte est créé. Vous pouvez vous connecter avec votre identifiant et mot de passe !" });
       }
@@ -53,8 +54,10 @@ exports.login = async (req, res) => {
         res.status(200).json({
           username: user.username,
           email: user.email,
-          role: user.role,
+          isAdmin: user.isAdmin,
+          companyRole: user.companyRole,
           userId: user.id,
+          imageUrl: user.imageUrl,
           token: jwt.sign({userId: user.id}, process.env.SECRET_JWT, {expiresIn: '24h'})
         })
       }
@@ -88,7 +91,7 @@ exports.getOneUserById = async (req, res) => {
 
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await db.User.findAll({ attributes: ["id", "username", "email", "imageUrl", "role"]});
+    const users = await db.User.findAll({ attributes: ["id", "username", "email", "imageUrl", "isAdmin", "companyRole"]});
     res.status(200).json(users);
   } catch (error) {
     return res.status(500).json({ error: "Erreur Serveur" });
@@ -157,12 +160,24 @@ exports.modifyAccountPassword = async (req, res) => {
   }
 };
 
+
+exports.modifyAccountCompanyRole = async (req, res) => {
+  const userToUpdate = await db.User.findOne({ where: { id: req.params.id } }); // On récupère l'utilisateur à modifier
+  try {
+      userToUpdate.companyRole = req.body.companyRole;
+      const newUser = await userToUpdate.save({ fields: ["companyRole"]});
+      res.status(200).json("Votre poste dans la société a bien été mis à jour!")
+  } catch {
+    return res.status(500).json({ error: "Erreur Serveur lors de la modification du poste dans la société de l'utilisateur" });
+  }
+};
+
 exports.deleteAccount = async (req, res) => {
   try {
       const userId = auth.getUserID(req);
-      const isAdmin = await db.User.findOne({ where: { id: userId } }); 
+      const adminCheck = await db.User.findOne({ where: { id: userId } }); 
       const user = await db.User.findOne({ where: { id: req.params.id } });
-      if (req.params.id === userId || isAdmin.role === true){
+      if (req.params.id === userId || adminCheck.isAdmin === true){
       if (user.imageUrl !== null) {
         const filename = user.imageUrl.split("/images")[1];
         fs.unlink(`images/${filename}`, () => {
