@@ -21,7 +21,8 @@ module.exports = (sequelize, DataTypes) => {
     email: { type: DataTypes.STRING, allowNull: false, unique: true },
     password: { type: DataTypes.STRING, allowNull: false },
     imageUrl: { type: DataTypes.STRING },
-    role: {type: DataTypes.BOOLEAN, allowNull:false, defaultValue: false }
+    companyRole: {type: DataTypes.STRING, allowNull: false },
+    isAdmin: {type: DataTypes.BOOLEAN, allowNull:false, defaultValue: false }
   }, {
     sequelize,
     modelName: 'User',

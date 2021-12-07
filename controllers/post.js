@@ -17,7 +17,7 @@ exports.createPost = async (req, res) => {
                 return res.status(403).json({message : "Vous ne pouvez pas poster un message vide"})
             }
             if (req.file) {
-                imageUrl = `${req.protocol}://${req.get('host')}/images/${req.file.filename}`;
+                imageUrl = `${req.protocol}://${req.get("host")}/images/${req.file.filename}`;
             } else {
                 imageUrl = null;
             }
@@ -77,7 +77,7 @@ exports.getAllPostsFromUser = async (req, res) => {
     try {
       const user = await db.User.findOne({ where : {username: req.params.username}})
       const posts = await db.Post.findAll({
-        where : {userId : user.id},
+        where : {UserId : user.id},
         limit: 50, order: [["id", "DESC"]], 
         attributes : ["id", "content", "imageUrl", "modifiedBy"],
         include: [
@@ -97,9 +97,9 @@ exports.getAllPostsFromUser = async (req, res) => {
 exports.deletePost = async (req, res) => {
     try {
         const userId = auth.getUserID(req);
-        const isAdmin = await db.User.findOne({ where: { id: userId } });
+        const adminCheck = await db.User.findOne({ where: { id: userId } });
         const thisPost = await db.Post.findOne({ where: { id: req.params.id } });
-        if (userId === thisPost.UserId || isAdmin.role === true) {
+        if (userId === thisPost.UserId || adminCheck.isAdmin === true) {
             if (thisPost.imageUrl) {
               const filename = thisPost.imageUrl.split("/images")[1];
               fs.unlink(`images/${filename}`, () => {
@@ -123,10 +123,10 @@ exports.modifyPost = async (req, res) => {
     try {
         let newImageUrl;
         const userId = auth.getUserID(req);
-        const isAdmin = await db.User.findOne({ where: { id: userId } });
+        const adminCheck = await db.User.findOne({ where: { id: userId } });
         const hasModified = await db.User.findOne({ where: { id: userId } });
         const thisPost = await db.Post.findOne({ where: { id: req.params.id } });
-        if (userId === thisPost.UserId || isAdmin.role === true) {
+        if (userId === thisPost.UserId || adminCheck.isAdmin === true) {
             if (req.file) {
                 newImageUrl = `${req.protocol}://${req.get("host")}/images/${req.file.filename}`;
                 if (thisPost.imageUrl) {
@@ -208,7 +208,7 @@ exports.deleteComment = async (req, res) => {
         const userId = auth.getUserID(req);
         const isAdmin = await db.User.findOne({ where: { id: userId } });
         const thisComment = await db.Comment.findOne({ where: { id: req.params.id } });
-        if (userId === thisComment.UserId || isAdmin.role === true) {
+        if (userId === thisComment.UserId || isAdmin.isAdmin === true) {
               db.Comment.destroy({ where: { id: thisComment.id } }, { truncate: true });
               res.status(200).json({ message: "Le Commentaire a été supprimé" });
             }
@@ -227,7 +227,7 @@ exports.modifyComment = async (req, res) => {
         const isAdmin = await db.User.findOne({ where: { id: userId } });
         const hasModified = await db.User.findOne({ where: { id: userId } });
         const thisComment = await db.Comment.findOne({ where: { id: req.params.id } });
-        if (userId === thisComment.UserId || isAdmin.role === true) {
+        if (userId === thisComment.UserId || isAdmin.isAdmin === true) {
             if (req.body.comment) {
                 thisComment.comment = req.body.comment;
             }
