@@ -11,7 +11,7 @@ function createFirstUserAdmin(req, res) {
             const admin = db.User.create({
               username: process.env.ADMINUSERNAME,
               email: process.env.ADMINEMAIL,
-              imageUrl: `${process.env.SERVER_ADRESSE}/imagesdefault/default.png`,
+              imageUrl: `${process.env.SERVER_ADRESSE}images/default.png`,
               password: hash,
               companyRole: process.env.COMPANY_ROLE ? process.env.COMPANY_ROLE : "Administrateur du réseau social",
               isAdmin: true,
