@@ -12,8 +12,8 @@ router.get("/wall/:username", auth.signin, postCtrl.getAllPostsFromUser);
 router.put("/:id", auth.signin, multer, postCtrl.modifyPost);
 router.delete("/:id", auth.signin, multer, postCtrl.deletePost);
 
-router.post("/:id/comment", auth.signin, postCtrl.createComment);
-router.get("/comment/:id", auth.signin, postCtrl.getOneComment);
+router.post("/comment/:id", auth.signin, postCtrl.createComment);
+router.get("/comment/:id", auth.signin, postCtrl.getAllCommentsFromPost);
 router.put("/comment/:id", auth.signin, postCtrl.modifyComment);
 router.delete("/comment/:id", auth.signin, postCtrl.deleteComment);
 
