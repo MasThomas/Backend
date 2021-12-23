@@ -1,6 +1,7 @@
 const db = require("../models"); 
 const auth = require("../middleware/auth")
 const fs = require("fs");
+const path = require("path");
 
 
 // ----------------------------------------------------------------------- //
@@ -9,28 +10,32 @@ const fs = require("fs");
 
 exports.createPost = async (req, res) => {
     try {
-        let imageUrl = "";
         const userId = auth.getUserID(req);
         const user = await db.User.findOne({ where: { id: userId } });
         if(user !== null) { 
-            if (!req.file && !req.body.content) {
-                return res.status(403).json({message : "Vous ne pouvez pas poster un message vide"})
+            if (req.file === null && Object.keys(req.body.content).length <= 2 ) {
+                return res.status(403).json({message : "Vous ne pouvez pas poster un message vide ou trop court !"})
             }
-            if (req.file) {
-                imageUrl = `${req.protocol}://${req.get("host")}/images/${req.file.filename}`;
-            } else {
-                imageUrl = null;
-            }
-            const newPost = await db.Post.create({
-                content: req.body.content,
-                imageUrl: imageUrl,
+            const newPost = {
+                content : '',
                 UserId: userId,
+                imageUrl: null
+            }
+            if(req.file) {
+                newPost.imageUrl = `${req.protocol}://${req.get("host")}/images/${req.file.filename}`
+            }
+            if(req.body.content) {
+                newPost.content = req.body.content
+            }
+            const sendNewPost = await db.Post.create({
+                content: newPost.content,
+                UserId: newPost.UserId,
+                imageUrl: newPost.imageUrl
             });
-            res.status(201).json({ post: newPost, message: "Post créé" });
+            res.status(201).json({ post: sendNewPost, message: "Post créé avec succès !" });
         } else {
-            res.status(403).json({message : "Erreur lors de l'identification de l'utilisateur"})
+            res.status(402).json({message : "Erreur lors de l'identification de l'utilisateur"})
         }
-        
     } catch (error) {
         return res.status(500).json({ error: "Erreur Serveur lors de la création du post" });
     }
@@ -79,7 +84,7 @@ exports.getAllPostsFromUser = async (req, res) => {
       const posts = await db.Post.findAll({
         where : {UserId : user.id},
         limit: 50, order: [["id", "DESC"]], 
-        attributes : ["id", "content", "imageUrl", "modifiedBy"],
+        attributes : ["id", "content", "imageUrl", "modifiedBy", "createdAt"],
         include: [
             {model: db.User, attributes: ["id", "username", "email", "imageUrl"]},
             {model: db.Comment, 
@@ -118,7 +123,6 @@ exports.deletePost = async (req, res) => {
     }
 };
 
-//Vérifier la modification de fichier côté front
 exports.modifyPost = async (req, res) => {
     try {
         let newImageUrl;
@@ -161,21 +165,20 @@ exports.modifyPost = async (req, res) => {
 // ----------------------------------------------------------------------- //
 
 
-// Pas testable pour l'instant
 exports.createComment = async (req, res) => {    
     try {
         const userId = auth.getUserID(req);
         const user = await db.User.findOne({ where: { id: userId } });
         if (user !== null) { 
             if(!req.body.comment){
-                return res.status(403).json({ error: "Merci de renseigner le corps du message" });
+                return res.status(403).json({ error: "Veuillez renseigner un commentaire valide" });
             } else {
                 const myComment = await db.Comment.create({
                     comment: req.body.comment,
                     UserId: user.id,
                     PostId: req.params.id,
                 }); 
-                res.status(200).json({ post: myComment, message: "Le Commentaire a été ajouté" });
+                res.status(200).json({ post: myComment, message: "Le commentaire a été ajouté avec succès !" });
             }
         }
         else {
@@ -186,15 +189,14 @@ exports.createComment = async (req, res) => {
     }
 };
 
-// Pas testable pour l'instant
-exports.getOneComment = async (req, res) => {
+exports.getAllCommentsFromPost = async (req, res) => {
     try {
-        const comment = await db.Comment.findOne({ 
-            attributes: ["id", "comment", "modifiedBy"], 
+        const post = await db.Post.findOne({where: { id: req.params.id }})
+        const comment = await db.Comment.findAll({ 
             include: [
                 {model: db.User, attributes: ["id", "username", "email", "imageUrl"]},
             ],
-            where: { id: req.params.id } 
+            where: { PostId : post.id } 
         });
         res.status(200).json(comment);
     } catch (error) {
@@ -202,7 +204,6 @@ exports.getOneComment = async (req, res) => {
     }
 };
 
-// Pas testable pour l'instant
 exports.deleteComment = async (req, res) => {
     try {
         const userId = auth.getUserID(req);
@@ -220,7 +221,6 @@ exports.deleteComment = async (req, res) => {
     }
 };
 
-// Pas testable pour l'instant
 exports.modifyComment = async (req, res) => {
     try {
         const userId = auth.getUserID(req);
