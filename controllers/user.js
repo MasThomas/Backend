@@ -6,8 +6,6 @@ const auth = require("../middleware/auth")
 const bcrypt = require("bcrypt");
 require("dotenv").config();
 const fs = require("fs");
-const mailRegex = require("../middleware/mailRegex");
-const pwValidator = require('../middleware/pwValidator')
 
 
 exports.signup = async (req, res) => {
@@ -27,7 +25,7 @@ exports.signup = async (req, res) => {
             companyRole: req.body.companyRole,
             password: hash,
             isAdmin: false,
-            imageUrl: `${req.protocol}://${req.get("host")}/imagesdefault/default.png`
+            imageUrl: `${req.protocol}://${req.get("host")}/images/default.png`
           });
           res.status(201).json({ message: "Votre compte est créé. Vous pouvez vous connecter avec votre identifiant et mot de passe !" });
       }
@@ -98,30 +96,24 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// Vérifier le bon fonctionnement via le front ?
 exports.modifyAccountProfilePicture = async (req, res) => {
-  const userToUpdate = await db.User.findOne({ where: { username: req.params.username } }); // On récupère l'utilisateur à modifier
+  const userToUpdate = await db.User.findOne({ where: { id: req.params.id } }); 
   try {
-    
-    if (req.file && userToUpdate.imageUrl) {
-      updatedimageUrl = `${req.protocol}://${req.get("host")}/images/${req.file.filename}`;
+      const updatedimageUrl = `${req.protocol}://${req.get("host")}/images/${req.file.filename}`;
       const filename = userToUpdate.imageUrl.split("/images")[1];
-      fs.unlink(`images/${filename}`, (err) => {
-        err ? console.log(err) : console.log(`Image Supprimée: images/${filename}`);});
-    
-      } else if (req.file) {
-        updatedimageUrl = `${req.protocol}://${req.get("host")}/images/${req.file.filename}`;
-      }
+      filename === 'default.png' 
+      ? {} 
+      : fs.unlink(`images/${filename}`, (err) => {
+          err ? console.log(err) : console.log(`Image Supprimée: images/${filename}`);
+        });
 
-    if (updatedimageUrl) {
     userToUpdate.imageUrl = updatedimageUrl;
-    }
+    
     const newUser = await userToUpdate.save({ fields: ["imageUrl"] }); 
-    return res.status(200).json("Votre imageUrl a bien été mis à jour!");
+    return res.status(200).json(userToUpdate.imageUrl);
   } catch {
-      return res.status(500).json({ error: "Erreur Serveur lors de la modification de la photo de profil" });
+    return res.status(500).json({ error: "Erreur Serveur lors de la modification de la photo de profil" });
   }
-
 };
 
 exports.modifyAccountUsername = async (req, res) => {
@@ -159,7 +151,6 @@ exports.modifyAccountPassword = async (req, res) => {
     return res.status(500).json({ error: "Erreur Serveur lors de la modification du mot de passe" });
   }
 };
-
 
 exports.modifyAccountCompanyRole = async (req, res) => {
   const userToUpdate = await db.User.findOne({ where: { id: req.params.id } }); // On récupère l'utilisateur à modifier
