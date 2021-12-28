@@ -102,7 +102,7 @@ exports.modifyAccountProfilePicture = async (req, res) => {
       const updatedimageUrl = `${req.protocol}://${req.get("host")}/images/${req.file.filename}`;
       const filename = userToUpdate.imageUrl.split("/images")[1];
       filename === 'default.png' 
-      ? {} 
+      ? {}
       : fs.unlink(`images/${filename}`, (err) => {
           err ? console.log(err) : console.log(`Image Supprimée: images/${filename}`);
         });
@@ -171,7 +171,9 @@ exports.deleteAccount = async (req, res) => {
       if (req.params.id === userId || adminCheck.isAdmin === true){
       if (user.imageUrl !== null) {
         const filename = user.imageUrl.split("/images")[1];
-        fs.unlink(`images/${filename}`, () => {
+        filename === 'default.png' 
+        ? {} 
+        : fs.unlink(`images/${filename}`, () => {
           db.User.destroy({ where: { id: req.params.id } });
           res.status(200).json({ message: "Le compte a été supprimé" });
         });
