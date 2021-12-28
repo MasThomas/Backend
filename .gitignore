@@ -1,4 +1,5 @@
 node_modules
-images
+images/*
 .env
 config/config.json
+!images/default.png
