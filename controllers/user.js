@@ -101,8 +101,8 @@ exports.modifyAccountProfilePicture = async (req, res) => {
   try {
       const updatedimageUrl = `${req.protocol}://${req.get("host")}/images/${req.file.filename}`;
       const filename = userToUpdate.imageUrl.split("/images")[1];
-      filename === 'default.png' 
-      ? {}
+      filename === '/default.png' 
+      ? console.log("Impossible de supprimer l'image par défaut")
       : fs.unlink(`images/${filename}`, (err) => {
           err ? console.log(err) : console.log(`Image Supprimée: images/${filename}`);
         });
