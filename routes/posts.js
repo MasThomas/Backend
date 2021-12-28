@@ -14,6 +14,7 @@ router.delete("/:id", auth.signin, multer, postCtrl.deletePost);
 
 router.post("/comment/:id", auth.signin, postCtrl.createComment);
 router.get("/comment/:id", auth.signin, postCtrl.getAllCommentsFromPost);
+router.get("/comment/one/:id", auth.signin, postCtrl.getOneComment)
 router.put("/comment/:id", auth.signin, postCtrl.modifyComment);
 router.delete("/comment/:id", auth.signin, postCtrl.deleteComment);
 

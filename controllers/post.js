@@ -34,7 +34,7 @@ exports.createPost = async (req, res) => {
             });
             res.status(201).json({ post: sendNewPost, message: "Post créé avec succès !" });
         } else {
-            res.status(402).json({message : "Erreur lors de l'identification de l'utilisateur"})
+            res.status(401).json({message : "Erreur lors de l'identification de l'utilisateur"})
         }
     } catch (error) {
         return res.status(500).json({ error: "Erreur Serveur lors de la création du post" });
@@ -113,10 +113,10 @@ exports.deletePost = async (req, res) => {
               });
             } else {
               db.Post.destroy({ where: { id: thisPost.id } }, { truncate: true });
-              res.status(200).json({ message: "Le Post a été supprimé" });
+              res.status(200).json({ message: "Le post a été supprimé avec succès" });
             }
           } else {
-            res.status(403).json({ message: "Vous n'êtes pas autotisé à supprimer ce Post" });
+            res.status(403).json({ message: "Vous n'êtes pas autorisé à supprimer ce post" });
           }
     } catch (error) {
         return res.status(500).json({ error: "Erreur Serveur lors de la suppression d'un post" });
@@ -150,7 +150,7 @@ exports.modifyPost = async (req, res) => {
             const newPost = await thisPost.save({
                 fields: ["content", "imageUrl", "modifiedBy"],
             });
-            res.status(200).json({ newPost: newPost, message: "Le Post a été modifié" });
+            res.status(200).json({ newPost: newPost, message: "Le post a été modifié avec succès !" });
           } 
           else {
             res.status(403).json({ message: "Vous n'êtes pas autorisé à modifier ce post" });
@@ -189,18 +189,32 @@ exports.createComment = async (req, res) => {
     }
 };
 
+exports.getOneComment = async (req, res) => {
+    try {
+        const comment = await db.Comment.findOne({ 
+            include: [
+                {model: db.User, attributes: ["id", "username", "imageUrl"]},
+            ],
+            where: { id: req.params.id } 
+        });
+        res.status(200).json(comment);
+    } catch (error) {
+        return res.status(500).json({ error: "Erreur Serveur lors de l'affichage d'un commentaire" });
+    }
+};
+
 exports.getAllCommentsFromPost = async (req, res) => {
     try {
         const post = await db.Post.findOne({where: { id: req.params.id }})
         const comment = await db.Comment.findAll({ 
             include: [
-                {model: db.User, attributes: ["id", "username", "email", "imageUrl"]},
+                {model: db.User, attributes: ["id", "username", "imageUrl"]},
             ],
             where: { PostId : post.id } 
         });
         res.status(200).json(comment);
     } catch (error) {
-        return res.status(500).json({ error: "Erreur Serveur lors de l'affichage d'un commentaire" });
+        return res.status(500).json({ error: "Erreur Serveur lors de l'affichage de tous les commentaires du post" });
     }
 };
 
@@ -211,10 +225,10 @@ exports.deleteComment = async (req, res) => {
         const thisComment = await db.Comment.findOne({ where: { id: req.params.id } });
         if (userId === thisComment.UserId || isAdmin.isAdmin === true) {
               db.Comment.destroy({ where: { id: thisComment.id } }, { truncate: true });
-              res.status(200).json({ message: "Le Commentaire a été supprimé" });
+              res.status(200).json({ message: "Le commentaire a été supprimé avec succès" });
             }
         else {
-            res.status(400).json({ message: "Vous n'êtes pas autotisé à supprimer ce commentaire" });
+            res.status(403).json({ message: "Vous n'êtes pas autorisé à supprimer ce commentaire" });
           }
     } catch (error) {
         return res.status(500).json({ error: "Erreur Serveur lors de la suppression d'un commentaire" });
@@ -235,10 +249,10 @@ exports.modifyComment = async (req, res) => {
             const newComment = await thisComment.save({
                 fields: ["comment", "modifiedBy"],
             });
-            res.status(200).json({ newComment: newComment, message: "Le Commentaire a été modifié" });
+            res.status(200).json({ newComment: newComment, message: "Le commentaire a été modifié avec succès !" });
           } 
           else {
-            res.status(400).json({ message: "Vous n'êtes pas autorisé à modifier ce commentaire" });
+            res.status(403).json({ message: "Vous n'êtes pas autorisé à modifier ce commentaire" });
           }
     } catch (error) {
         return res.status(500).json({ error: "Erreur Serveur lors de la modification d'un commentaire" });
