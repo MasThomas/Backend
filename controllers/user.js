@@ -172,7 +172,7 @@ exports.deleteAccount = async (req, res) => {
       if (user.imageUrl !== null) {
         const filename = user.imageUrl.split("/images")[1];
         filename === 'default.png' 
-        ? {} 
+        ? console.log("Impossible de supprimer l'image par défaut")
         : fs.unlink(`images/${filename}`, () => {
           db.User.destroy({ where: { id: req.params.id } });
           res.status(200).json({ message: "Le compte a été supprimé" });
